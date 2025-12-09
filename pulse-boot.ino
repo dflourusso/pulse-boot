@@ -1,14 +1,14 @@
 #include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
-#include "secrets.h"
+#include <ESP8266Ping.h>
+#include "secrets.h" // ssid, password and IP
 
 #define RELAY_PIN 0
-#define SUCCESS_CHECK_INTERVAL 300000   // 5m between checks
-#define FAIL_CHECK_INTERVAL 20000   // 20s between checks
-#define FAIL_THRESHOLD 10
+#define SUCCESS_CHECK_INTERVAL 60000   // 1m between checks
+#define FAIL_CHECK_INTERVAL 10000       // 10s between checks
+#define FAIL_THRESHOLD 20
 
 int failCount = 0;
-WiFiClient client;
+IPAddress targetIP(targetIP_array);
 
 void setup() {
   pinMode(RELAY_PIN, OUTPUT);
@@ -25,20 +25,15 @@ void setup() {
 
 void loop() {
   if (WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
+    Serial.println("Wifi disconnected, trying to connect...");
     delay(1000);
+    ESP.restart();
     return;
   }
 
-  HTTPClient http;
-  http.begin(client, endpoint);
-  int httpCode = http.GET();
-  http.end();
-
-  Serial.printf("HTTP status: %d\n", httpCode);
-
-  if (httpCode == 200) {
-    Serial.printf("HTTP OK\n");
+  // Faz ping para a máquina
+  if (Ping.ping(targetIP, 1)) {
+    Serial.println("Machine online");
     failCount = 0;
   } else {
     failCount++;
